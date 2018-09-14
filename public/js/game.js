@@ -57,7 +57,6 @@ function create() {
 
   this.cursors = this.input.keyboard.createCursorKeys();
   this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-  this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
 
   this.socket.on('playerMoved', playerInfo => {
     self.otherPlayers.getChildren().forEach(otherPlayer => {
@@ -143,24 +142,13 @@ function update() {
     };
 
     if (this.spaceKey.isDown) {
-      console.log('sPAAAACE');
-
-      // const speedX = Math.cos(this.ship.rotation + Math.PI / 2) * 20;
-      // const speedY = Math.sin(this.ship.rotation + Math.PI / 2) * 20;
       // this.shot = true;
       // Tell the server we shot a bullet
       this.socket.emit('shootBullet', {
         x: this.ship.x,
         y: this.ship.y,
-        rotation: this.ship.rotation,
-        // speedX: speedX,
-        // speedY: speedY,
+        rotation: this.ship.rotation
       });
-    }
-
-    if (this.key.isDown) {
-      console.log('a key');
-
     }
   }
 }
