@@ -23,12 +23,15 @@ function preload() {
   this.load.image('ship', 'assets/spaceShips_001.png');
   this.load.image('otherPlayer', 'assets/enemyBlack5.png');
   this.load.image('star', 'assets/star_gold.png');
+  this.load.image('bullet', 'assets/bullet.png');
 }
 
 function create() {
   const self = this;
   this.socket = io();
   this.otherPlayers = this.physics.add.group();
+  // this.bullets = this.physics.add.group();
+  this.arrBullets = [];
 
   this.socket.on('currentPlayers', players => {
     Object.keys(players).forEach(id => {
@@ -53,6 +56,8 @@ function create() {
   });
 
   this.cursors = this.input.keyboard.createCursorKeys();
+  this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+  this.key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
 
   this.socket.on('playerMoved', playerInfo => {
     self.otherPlayers.getChildren().forEach(otherPlayer => {
@@ -61,6 +66,29 @@ function create() {
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
       }
     });
+  });
+
+  this.socket.on('bulletsUpdate', arrServerBullets => {
+    for (let i = 0; i < arrServerBullets.length; i++) {
+      if (this.arrBullets[i] == undefined) {
+        this.arrBullets[i] = self.add.sprite(
+          arrServerBullets[i].x,
+          arrServerBullets[i].y,
+          'bullet'
+        );
+      } else {
+        //Otherwise, just update it!
+        this.arrBullets[i].x = arrServerBullets[i].x;
+        this.arrBullets[i].y = arrServerBullets[i].y;
+      }
+    }
+    // Otherwise if there's too many, delete the extra
+    for (let i = arrServerBullets.length; i < this.arrBullets.length; i++) {
+      this.arrBullets[i].destroy();
+      this.arrBullets.splice(i, 1);
+      i--;
+    }
+
   });
 
   this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });
@@ -113,6 +141,27 @@ function update() {
       y: this.ship.y,
       rotation: this.ship.rotation
     };
+
+    if (this.spaceKey.isDown) {
+      console.log('sPAAAACE');
+
+      // const speedX = Math.cos(this.ship.rotation + Math.PI / 2) * 20;
+      // const speedY = Math.sin(this.ship.rotation + Math.PI / 2) * 20;
+      // this.shot = true;
+      // Tell the server we shot a bullet
+      this.socket.emit('shootBullet', {
+        x: this.ship.x,
+        y: this.ship.y,
+        rotation: this.ship.rotation,
+        // speedX: speedX,
+        // speedY: speedY,
+      });
+    }
+
+    if (this.key.isDown) {
+      console.log('a key');
+
+    }
   }
 }
 

@@ -13,6 +13,7 @@ const session = require('express-session')({
 const sharedsession = require('express-socket.io-session');
 
 const players = {};
+const arrBullets = [];
 const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
@@ -81,9 +82,41 @@ io.on('connection', socket => {
     star.y = Math.floor(Math.random() * 500) + 50;
     io.emit('starLocation', star);
     io.emit('scoreUpdate', scores);
-  })
+  });
+
+  socket.on('shootBullet', (data) => {
+    if (players[socket.id] == undefined) return;
+
+    const speedX = Math.cos(data.rotation + Math.PI / 2) * 20;
+    const speedY = Math.sin(data.rotation + Math.PI / 2) * 20;
+    const newBullet = data;
+    data.speedX = speedX;
+    data.speedY = speedY;
+    data.ownerId = socket.id; // Attach id of the player to the bullet
+    arrBullets.push(newBullet);
+  });
 });
 
 server.listen(8081, () => {
   console.log(`Listening on ${server.address().port}`);
 });
+
+
+// Update the bullets 60 times per frame and send updates
+function ServerGameLoop() {
+  for (let i = 0; i < arrBullets.length; i++) {
+    const bullet = arrBullets[i];
+    bullet.x += bullet.speedX;
+    bullet.y += bullet.speedY;
+
+    // Remove if it goes too far off screen
+    if (bullet.x < -10 || bullet.x > 1000 || bullet.y < -10 || bullet.y > 1000) {
+      arrBullets.splice(i, 1);
+      i--;
+    }
+  }
+
+  io.emit('bulletsUpdate', arrBullets);
+}
+
+setInterval(ServerGameLoop, 16);
