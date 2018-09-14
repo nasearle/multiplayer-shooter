@@ -26,8 +26,6 @@ function preload() {
   this.load.image('bullet', 'assets/bullet.png');
 }
 
-const fireRate = 100;
-
 function create() {
   const self = this;
   this.socket = io();
