@@ -26,6 +26,8 @@ function preload() {
   this.load.image('bullet', 'assets/bullet.png');
 }
 
+const fireRate = 100;
+
 function create() {
   const self = this;
   this.socket = io();
@@ -57,6 +59,7 @@ function create() {
 
   this.cursors = this.input.keyboard.createCursorKeys();
   this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+  this.spaceKey.repeats = 1;
 
   this.socket.on('playerMoved', playerInfo => {
     self.otherPlayers.getChildren().forEach(otherPlayer => {
@@ -141,15 +144,16 @@ function update() {
       rotation: this.ship.rotation
     };
 
-    if (this.spaceKey.isDown) {
-      // this.shot = true;
-      // Tell the server we shot a bullet
+    if (this.spaceKey.isDown && !this.shot) {
+      this.shot = true;
+
       this.socket.emit('shootBullet', {
         x: this.ship.x,
         y: this.ship.y,
         rotation: this.ship.rotation
       });
     }
+    if (!this.spaceKey.isDown) this.shot = false;
   }
 }
 
