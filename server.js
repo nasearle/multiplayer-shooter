@@ -95,6 +95,11 @@ io.on('connection', socket => {
     data.ownerId = socket.id; // Attach id of the player to the bullet
     arrBullets.push(newBullet);
   });
+
+  socket.on('sendMsgToServer', (data) => {
+    const playerName = '' + socket.id;
+    io.emit('addToChat', playerName + ': ' + data);
+  });
 });
 
 server.listen(8081, () => {

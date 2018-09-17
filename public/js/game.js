@@ -1,3 +1,5 @@
+import { chatJS } from './chat.js';
+
 const config = {
   type: Phaser.AUTO,
   parent: 'phaser-example',
@@ -29,6 +31,7 @@ function preload() {
 function create() {
   const self = this;
   this.socket = io();
+  chatJS(this.socket);
   this.otherPlayers = this.physics.add.group();
   // this.bullets = this.physics.add.group();
   this.arrBullets = [];
@@ -176,3 +179,5 @@ function addOtherPlayers(self, playerInfo) {
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
+
+export const socket = game.socket;
