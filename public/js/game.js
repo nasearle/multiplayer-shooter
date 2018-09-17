@@ -89,7 +89,6 @@ function create() {
       this.arrBullets.splice(i, 1);
       i--;
     }
-
   });
 
   this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });

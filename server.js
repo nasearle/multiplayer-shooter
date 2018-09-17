@@ -5,12 +5,11 @@ const io = require('socket.io').listen(server);
 const session = require('express-session')({
   secret: 'ship game',
   resave: true,
-  saveUninitialized: true,
-  // cookie: {
-  //   maxAge: 1000 * 60 * 10
-  // },
+  saveUninitialized: true
 });
 const sharedsession = require('express-socket.io-session');
+
+const DEBUG = true;
 
 const players = {};
 const arrBullets = [];
@@ -99,6 +98,12 @@ io.on('connection', socket => {
   socket.on('sendMsgToServer', (data) => {
     const playerName = '' + socket.id;
     io.emit('addToChat', playerName + ': ' + data);
+  });
+
+  socket.on('evalServer', data => {
+    if (!DEBUG) return;
+    const res = eval(data);
+    socket.emit('evalAnswer', res);
   });
 });
 
