@@ -71,11 +71,9 @@ function create() {
   this.socket.on('bulletsUpdate', arrServerBullets => {
     for (let i = 0; i < arrServerBullets.length; i++) {
       if (this.arrBullets[i] == undefined) {
-        this.arrBullets[i] = self.add.sprite(
-          arrServerBullets[i].x,
-          arrServerBullets[i].y,
-          'bullet'
-        );
+        this.arrBullets[i] = self.add
+          .sprite(arrServerBullets[i].x, arrServerBullets[i].y, 'bullet')
+          .setDisplaySize(10, 10);
       } else {
         //Otherwise, just update it!
         this.arrBullets[i].x = arrServerBullets[i].x;
@@ -144,12 +142,7 @@ function update() {
 
     if (this.spaceKey.isDown && !this.shot) {
       this.shot = true;
-
-      this.socket.emit('shootBullet', {
-        x: this.ship.x,
-        y: this.ship.y,
-        rotation: this.ship.rotation
-      });
+      this.socket.emit('shootBullet', { x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation });
     }
     if (!this.spaceKey.isDown) this.shot = false;
   }
