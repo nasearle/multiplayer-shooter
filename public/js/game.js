@@ -73,21 +73,34 @@ function create() {
 
   this.socket.on('bulletsUpdate', arrServerBullets => {
     for (let i = 0; i < arrServerBullets.length; i++) {
-      if (this.arrBullets[i] == undefined) {
-        this.arrBullets[i] = self.add
+      if (self.arrBullets[i] == undefined) {
+        self.arrBullets[i] = self.add
           .sprite(arrServerBullets[i].x, arrServerBullets[i].y, 'bullet')
           .setDisplaySize(10, 10);
       } else {
         //Otherwise, just update it!
-        this.arrBullets[i].x = arrServerBullets[i].x;
-        this.arrBullets[i].y = arrServerBullets[i].y;
+        self.arrBullets[i].x = arrServerBullets[i].x;
+        self.arrBullets[i].y = arrServerBullets[i].y;
       }
     }
     // Otherwise if there's too many, delete the extra
-    for (let i = arrServerBullets.length; i < this.arrBullets.length; i++) {
-      this.arrBullets[i].destroy();
-      this.arrBullets.splice(i, 1);
+    for (let i = arrServerBullets.length; i < self.arrBullets.length; i++) {
+      self.arrBullets[i].destroy();
+      self.arrBullets.splice(i, 1);
       i--;
+    }
+  });
+
+  // Listen for any player hit events and make that player flash
+  this.socket.on('playerHit', id => {
+    if (id == this.socket.id) {
+      self.ship.alpha = 0;
+    } else {
+      self.otherPlayers.getChildren().forEach(otherPlayer => {
+        if (otherPlayer.playerId === id) {
+          otherPlayer.alpha = 0;
+        }
+      });
     }
   });
 
@@ -147,7 +160,21 @@ function update() {
       this.socket.emit('shootBullet', { x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation });
     }
     if (!this.spaceKey.isDown) this.shot = false;
+
+    if (this.ship.alpha < 1) {
+      this.ship.alpha += (1 - this.ship.alpha) * 0.16;
+    } else {
+      this.ship.alpha = 1;
+    }
   }
+
+  this.otherPlayers.getChildren().forEach(otherPlayer => {
+    if (otherPlayer.alpha < 1) {
+      otherPlayer.alpha += (1 - otherPlayer.alpha) * 0.16;;
+    } else {
+      otherPlayer.alpha = 1;
+    }
+  });
 }
 
 function addPlayer(self, playerInfo) {

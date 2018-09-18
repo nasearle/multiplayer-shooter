@@ -10,6 +10,7 @@ const session = require('express-session')({
 const sharedsession = require('express-socket.io-session');
 
 const DEBUG = true;
+const HITBOX = 30;
 
 const players = {};
 const arrBullets = [];
@@ -118,6 +119,19 @@ function ServerGameLoop() {
     const bullet = arrBullets[i];
     bullet.x += bullet.speedX;
     bullet.y += bullet.speedY;
+
+    // Check if this bullet is close enough to hit any player
+    for (const id in players) {
+      if (bullet.ownerId != id) {
+        // And your own bullet shouldn't kill you
+        const dx = players[id].x - bullet.x;
+        const dy = players[id].y - bullet.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < HITBOX) {
+          io.emit('playerHit', id); // Tell everyone this player got hit
+        }
+      }
+    }
 
     // Remove if it goes too far off screen
     if (bullet.x < -10 || bullet.x > 1000 || bullet.y < -10 || bullet.y > 1000) {
