@@ -115,6 +115,10 @@ io.on('connection', socket => {
       socket.emit('showHitBoxes', players, HITBOX);
       hitboxSockets[socket.id] = socket;
     }
+    if (data == 'hidehitboxes') {
+      socket.emit('hideHitBoxes', players);
+      delete hitboxSockets[socket.id];
+    }
     // socket.emit('evalAnswer', res);
   });
 });

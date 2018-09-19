@@ -63,14 +63,14 @@ function create() {
   this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   this.spaceKey.repeats = 1;
 
-  this.socket.on('playerMoved', (playerInfo, radius) => {
+  this.socket.on('playerMoved', (playerInfo, hitbox) => {
     self.otherPlayers.getChildren().forEach(otherPlayer => {
       if (playerInfo.playerId === otherPlayer.playerId) {
         otherPlayer.setRotation(playerInfo.rotation);
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
-        if (radius) {
+        if (hitbox) {
           self['graphics-' + otherPlayer.playerId].clear();
-          self['graphics-' + otherPlayer.playerId].strokeCircle(otherPlayer.x, otherPlayer.y, radius);
+          self['graphics-' + otherPlayer.playerId].strokeCircle(otherPlayer.x, otherPlayer.y, hitbox);
         }
       }
     });
@@ -126,8 +126,8 @@ function create() {
     }, null, self);
   })
 
-  this.socket.on('showHitBoxes', (players, radius) => {
-    self.hitbox = radius;
+  this.socket.on('showHitBoxes', (players, hitbox) => {
+    self.hitbox = hitbox;
     Object.keys(players).forEach(id => {
       const graphicsId = 'graphics-' + id;
       if (self[graphicsId]) {
@@ -135,7 +135,17 @@ function create() {
       }
       self[graphicsId] = self.add.graphics(0, 0);
       self[graphicsId].lineStyle(1, 0xff00ff, 1.0);
-      self[graphicsId].strokeCircle(players[id].x, players[id].y, radius);
+      self[graphicsId].strokeCircle(players[id].x, players[id].y, hitbox);
+    });
+  });
+
+  this.socket.on('hideHitBoxes', players => {
+    self.hitbox = 0;
+    Object.keys(players).forEach(id => {
+      const graphicsId = 'graphics-' + id;
+      if (self[graphicsId]) {
+        self[graphicsId].destroy();
+      }
     });
   });
 }
