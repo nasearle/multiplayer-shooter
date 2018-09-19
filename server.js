@@ -143,6 +143,8 @@ function ServerGameLoop() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < HITBOX) {
           io.emit('playerHit', id); // Tell everyone this player got hit
+          arrBullets.splice(i, 1);
+          i--;
         }
       }
     }
