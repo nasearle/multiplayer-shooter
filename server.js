@@ -11,6 +11,7 @@ const sharedsession = require('express-socket.io-session');
 
 const DEBUG = true;
 const HITBOX = 30;
+const hitboxSockets = {};
 
 const players = {};
 const arrBullets = [];
@@ -69,7 +70,13 @@ io.on('connection', socket => {
     players[socket.id].y = movementData.y;
     players[socket.id].rotation = movementData.rotation;
     // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    for (const id in players) {
+      if (id in hitboxSockets) {
+        hitboxSockets[id].emit('playerMoved', players[socket.id], HITBOX);
+      } else {
+        socket.broadcast.emit('playerMoved', players[socket.id]);
+      }
+    }
   });
 
   socket.on('starCollected', () => {
@@ -103,15 +110,18 @@ io.on('connection', socket => {
 
   socket.on('evalServer', data => {
     if (!DEBUG) return;
-    const res = eval(data);
-    socket.emit('evalAnswer', res);
+    // const res = eval(data);
+    if (data == 'showhitboxes') {
+      socket.emit('showHitBoxes', players, HITBOX);
+      hitboxSockets[socket.id] = socket;
+    }
+    // socket.emit('evalAnswer', res);
   });
 });
 
 server.listen(8081, () => {
   console.log(`Listening on ${server.address().port}`);
 });
-
 
 // Update the bullets 60 times per frame and send updates
 function ServerGameLoop() {

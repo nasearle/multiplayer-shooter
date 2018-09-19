@@ -31,7 +31,8 @@ function preload() {
 function create() {
   const self = this;
   this.socket = io();
-  chatJS(this.socket);
+  this.hitbox = 0;
+  chatJS(this, this.socket);
   this.otherPlayers = this.physics.add.group();
   // this.bullets = this.physics.add.group();
   this.arrBullets = [];
@@ -62,11 +63,15 @@ function create() {
   this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   this.spaceKey.repeats = 1;
 
-  this.socket.on('playerMoved', playerInfo => {
+  this.socket.on('playerMoved', (playerInfo, radius) => {
     self.otherPlayers.getChildren().forEach(otherPlayer => {
       if (playerInfo.playerId === otherPlayer.playerId) {
         otherPlayer.setRotation(playerInfo.rotation);
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+        if (radius) {
+          self['graphics-' + otherPlayer.playerId].clear();
+          self['graphics-' + otherPlayer.playerId].strokeCircle(otherPlayer.x, otherPlayer.y, radius);
+        }
       }
     });
   });
@@ -120,6 +125,16 @@ function create() {
       this.socket.emit('starCollected');
     }, null, self);
   })
+
+  this.socket.on('showHitBoxes', (players, radius) => {
+    self.hitbox = radius;
+    Object.keys(players).forEach(id => {
+      const graphicsId = 'graphics-' + id;
+      self[graphicsId] = self.add.graphics(0, 0);
+      self[graphicsId].lineStyle(1, 0xff00ff, 1.0);
+      self[graphicsId].strokeCircle(players[id].x, players[id].y, radius);
+    });
+  });
 }
 
 function update() {
@@ -146,6 +161,10 @@ function update() {
     const r = this.ship.rotation;
     if (this.ship.oldPosition && (x !== this.ship.oldPosition.x || y !== this.ship.oldPosition.y || r !== this.ship.oldPosition.rotation)) {
       this.socket.emit('playerMovement', { x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation });
+      if (this.hitbox) {
+        this['graphics-' + this.socket.id].clear();
+        this['graphics-' + this.socket.id].strokeCircle(this.ship.x, this.ship.y, this.hitbox);
+      }
     }
 
     // save old position data

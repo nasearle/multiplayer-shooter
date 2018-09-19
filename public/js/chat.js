@@ -1,4 +1,4 @@
-const chatJS = (socket) => {
+const chatJS = (game, socket) => {
   const chatText = document.getElementById('chat-text');
   const chatInput = document.getElementById('chat-input');
   const chatForm = document.getElementById('chat-form');
