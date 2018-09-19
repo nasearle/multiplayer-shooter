@@ -130,6 +130,9 @@ function create() {
     self.hitbox = radius;
     Object.keys(players).forEach(id => {
       const graphicsId = 'graphics-' + id;
+      if (self[graphicsId]) {
+        self[graphicsId].destroy();
+      }
       self[graphicsId] = self.add.graphics(0, 0);
       self[graphicsId].lineStyle(1, 0xff00ff, 1.0);
       self[graphicsId].strokeCircle(players[id].x, players[id].y, radius);
