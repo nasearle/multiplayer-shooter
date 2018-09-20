@@ -12,6 +12,7 @@ const sharedsession = require('express-socket.io-session');
 const DEBUG = true;
 const HITBOX = 30;
 const hitboxSockets = {};
+const POWERUPDURATION = 5000;
 
 const players = {};
 const arrBullets = [];
@@ -80,27 +81,43 @@ io.on('connection', socket => {
   });
 
   socket.on('starCollected', () => {
-    if (players[socket.id].team === 'red') {
-      scores.red += 10;
-    } else {
-      scores.blue += 10;
-    }
-    star.x = Math.floor(Math.random() * 700) + 50;
-    star.y = Math.floor(Math.random() * 500) + 50;
-    io.emit('starLocation', star);
-    io.emit('scoreUpdate', scores);
+    players[socket.id].poweredUp = true;
+    setTimeout(() => {
+      players[socket.id].poweredUp = false;
+      star.x = Math.floor(Math.random() * 700) + 50;
+      star.y = Math.floor(Math.random() * 500) + 50;
+      io.emit('starLocation', star);
+    }, POWERUPDURATION);
   });
 
   socket.on('shootBullet', (data) => {
     if (players[socket.id] == undefined) return;
 
-    const speedX = Math.cos(data.rotation + Math.PI / 2) * 20;
-    const speedY = Math.sin(data.rotation + Math.PI / 2) * 20;
-    const newBullet = data;
-    data.speedX = speedX;
-    data.speedY = speedY;
-    data.ownerId = socket.id; // Attach id of the player to the bullet
-    arrBullets.push(newBullet);
+    if (players[socket.id].poweredUp) {
+      for (let i = -3; i < 3; i++) {
+        let rotation = data.rotation;
+        rotation = rotation + (0.1 * i);
+
+        const speedX = Math.cos(rotation + Math.PI / 2) * 20;
+        const speedY = Math.sin(rotation + Math.PI / 2) * 20;
+        arrBullets.push({
+          x: data.x,
+          y: data.y,
+          rotation: data.rotation,
+          speedX: speedX,
+          speedY: speedY,
+          ownerId: socket.id
+        });
+      }
+    } else {
+      const speedX = Math.cos(data.rotation + Math.PI / 2) * 20;
+      const speedY = Math.sin(data.rotation + Math.PI / 2) * 20;
+      const newBullet = data;
+      data.speedX = speedX;
+      data.speedY = speedY;
+      data.ownerId = socket.id; // Attach id of the player to the bullet
+      arrBullets.push(newBullet);
+    }
   });
 
   socket.on('sendMsgToServer', (data) => {
