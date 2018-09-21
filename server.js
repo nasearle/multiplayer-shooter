@@ -12,7 +12,9 @@ const sharedsession = require('express-socket.io-session');
 const DEBUG = true;
 const HITBOX = 30;
 const hitboxSockets = {};
+const PLAYERHP = 3
 const POWERUPDURATION = 5000;
+const RESPAWNTIME = 5000;
 
 const players = {};
 const arrBullets = [];
@@ -20,10 +22,10 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
-const scores = {
-  blue: 0,
-  red: 0,
-};
+// const scores = {
+//   blue: 0,
+//   red: 0,
+// };
 
 app.use(express.static(__dirname + '/public'));
 
@@ -43,13 +45,20 @@ io.on('connection', socket => {
   // and reconnects socket)
   if (!socket.handshake.session.ship_exists) {
     // create a new player and add it to our players object
-    players[socket.id] = { rotation: 0, x: Math.floor(Math.random() * 700) + 50, y: Math.floor(Math.random() * 500) + 50, playerId: socket.id, team: Math.floor(Math.random() * 2) == 0 ? 'red' : 'blue' };
+    players[socket.id] = {
+      rotation: 0,
+      x: Math.floor(Math.random() * 700) + 50,
+      y: Math.floor(Math.random() * 500) + 50,
+      playerId: socket.id,
+      hp: PLAYERHP,
+      kills: 0
+    };
     // send the players object to the new player
     socket.emit('currentPlayers', players);
     // send the star object to the new player
     socket.emit('starLocation', star);
     // send the current scores
-    socket.emit('scoreUpdate', scores);
+    // socket.emit('scoreUpdate', players[socket.id].kills);
     // update all other players of the new player
     socket.broadcast.emit('newPlayer', players[socket.id]);
 
@@ -81,9 +90,12 @@ io.on('connection', socket => {
   });
 
   socket.on('starCollected', () => {
+    io.emit('destroyStar');
     players[socket.id].poweredUp = true;
     setTimeout(() => {
-      players[socket.id].poweredUp = false;
+      if (players[socket.id]) {
+        players[socket.id].poweredUp = false;
+      }
       star.x = Math.floor(Math.random() * 700) + 50;
       star.y = Math.floor(Math.random() * 500) + 50;
       io.emit('starLocation', star);
@@ -161,6 +173,20 @@ function ServerGameLoop() {
         if (dist < HITBOX) {
           io.emit('playerHit', id); // Tell everyone this player got hit
           arrBullets.splice(i, 1);
+          players[id].hp -= 1;
+          if (players[id].hp <= 0) {
+            io.emit('disconnect', id);
+            players[id].hp = PLAYERHP;
+            players[id].x = Math.floor(Math.random() * 700) + 50;
+            players[id].y = Math.floor(Math.random() * 500) + 50;
+            setTimeout(() => {
+              if (players[id]) {
+                io.emit('respawn', players[id]);
+              }
+            }, RESPAWNTIME);
+            players[bullet.ownerId].kills += 1
+            io.emit('scoreUpdate', bullet.ownerId, players[bullet.ownerId].kills);
+          }
           i--;
         }
       }

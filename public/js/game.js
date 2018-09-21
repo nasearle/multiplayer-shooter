@@ -52,12 +52,30 @@ function create() {
   });
 
   this.socket.on('disconnect', playerId => {
+    if (playerId == this.socket.id) {
+      self.ship.destroy();
+      return
+    }
     self.otherPlayers.getChildren().forEach(otherPlayer => {
       if (playerId === otherPlayer.playerId) {
         otherPlayer.destroy();
       }
     });
   });
+
+  this.socket.on('respawn', playerInfo => {
+    if (playerInfo.playerId == this.socket.id) {
+      addPlayer(self, playerInfo);
+      if (self.star && self.star.active) {
+        self.physics.add.overlap(self.ship, self.star, () => {
+          self.star.destroy();
+          this.socket.emit('starCollected');
+        }, null, self);
+      }
+    } else {
+      addOtherPlayers(self, playerInfo);
+    }
+  })
 
   this.cursors = this.input.keyboard.createCursorKeys();
   this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -109,12 +127,16 @@ function create() {
     }
   });
 
-  this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });
-  this.redScoreText = this.add.text(584, 16, '', { fontSize: '32px', fill: '#FF0000' });
+  this.killsText = this.add.text(16, 16, 'Kills: 0', { fontSize: '32px', fill: '#FF0000' });
 
-  this.socket.on('scoreUpdate', scores => {
-    self.blueScoreText.setText('Blue: ' + scores.blue);
-    self.redScoreText.setText('Red: ' + scores.red);
+  this.socket.on('scoreUpdate', (id, kills) => {
+    if (id == this.socket.id) {
+      self.killsText.setText('Kills: ' + kills);
+    }
+  });
+
+  this.socket.on('destroyStar', () => {
+    if (self.star) self.star.destroy();
   });
 
   this.socket.on('starLocation', starLocation => {
@@ -124,7 +146,7 @@ function create() {
       self.star.destroy();
       this.socket.emit('starCollected');
     }, null, self);
-  })
+  });
 
   this.socket.on('showHitBoxes', (players, hitbox) => {
     self.hitbox = hitbox;
@@ -151,7 +173,7 @@ function create() {
 }
 
 function update() {
-  if (this.ship) {
+  if (this.ship && this.ship.active) {
     if (this.cursors.left.isDown) {
       this.ship.setAngularVelocity(-150);
     } else if (this.cursors.right.isDown) {
@@ -214,11 +236,6 @@ function addPlayer(self, playerInfo) {
     .image(playerInfo.x, playerInfo.y, 'ship')
     .setOrigin(0.5, 0.5)
     .setDisplaySize(53, 40);
-  if (playerInfo.team === 'blue') {
-    self.ship.setTint(0x0000ff);
-  } else {
-    self.ship.setTint(0xff0000);
-  }
   self.ship.setDrag(100);
   self.ship.setAngularDrag(100);
   self.ship.setMaxVelocity(200);
@@ -229,11 +246,6 @@ function addOtherPlayers(self, playerInfo) {
     .sprite(playerInfo.x, playerInfo.y, 'otherPlayer')
     .setOrigin(0.5, 0.5)
     .setDisplaySize(53, 40);
-  if (playerInfo.team === 'blue') {
-    otherPlayer.setTint(0x0000ff);
-  } else {
-    otherPlayer.setTint(0xff0000);
-  }
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
