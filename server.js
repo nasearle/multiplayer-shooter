@@ -10,6 +10,34 @@ const session = require('express-session')({
 const sharedsession = require('express-socket.io-session');
 
 const DEBUG = true;
+const USERS = {
+  'nick': 'hi'
+};
+const isValidPassword = data => {
+  return new Promise((resolve, reject) => {
+    if (USERS[data.username] === data.password) {
+      resolve();
+    } else {
+      reject();
+    }
+  });
+}
+const isUsernameTaken = data => {
+  return new Promise((resolve, reject) => {
+    if (USERS[data.username]) {
+      resolve();
+    } else {
+      reject();
+    }
+  });
+}
+const addUser = data => {
+  return new Promise(resolve => {
+    USERS[data.username] = data.password;
+    resolve();
+  });
+}
+
 const HITBOX = 30;
 const hitboxSockets = {};
 const PLAYERHP = 3
@@ -40,31 +68,48 @@ app.get('/', (req, res) => {
 io.on('connection', socket => {
   console.log('a user connected');
 
-  // if the player doesn't already have an existing session, create a new player
-  // (check prevents creating multiple ships when browser auto disconnects
-  // and reconnects socket)
-  if (!socket.handshake.session.ship_exists) {
-    // create a new player and add it to our players object
-    players[socket.id] = {
-      rotation: 0,
-      x: Math.floor(Math.random() * 700) + 50,
-      y: Math.floor(Math.random() * 500) + 50,
-      playerId: socket.id,
-      hp: PLAYERHP,
-      kills: 0
-    };
-    // send the players object to the new player
-    socket.emit('currentPlayers', players);
-    // send the star object to the new player
-    socket.emit('starLocation', star);
-    // send the current scores
-    // socket.emit('scoreUpdate', players[socket.id].kills);
-    // update all other players of the new player
-    socket.broadcast.emit('newPlayer', players[socket.id]);
+  socket.on('signIn', data => {
+    isValidPassword(data).then(() => {
+      socket.emit('signInResponse', { success: true });
+      // if the player doesn't already have an existing session, create a new player
+      // (check prevents creating multiple ships when browser auto disconnects
+      // and reconnects socket)
+      if (!socket.handshake.session.ship_exists) {
+        // create a new player and add it to our players object
+        players[socket.id] = {
+          rotation: 0,
+          x: Math.floor(Math.random() * 700) + 50,
+          y: Math.floor(Math.random() * 500) + 50,
+          playerId: socket.id,
+          hp: PLAYERHP,
+          kills: 0
+        };
+        // send the players object to the new player
+        socket.emit('currentPlayers', players);
+        // send the star object to the new player
+        socket.emit('starLocation', star);
+        // send the current scores
+        // socket.emit('scoreUpdate', players[socket.id].kills);
+        // update all other players of the new player
+        socket.broadcast.emit('newPlayer', players[socket.id]);
 
-    socket.handshake.session.ship_exists = true;
-    socket.handshake.session.save();
-  }
+        socket.handshake.session.ship_exists = true;
+        socket.handshake.session.save();
+      }
+    }).catch(() => {
+      socket.emit('signInResponse', { success: false });
+    });
+  });
+
+  socket.on('signUp', data => {
+    isUsernameTaken(data).then(() => {
+      socket.emit('signUpResponse', { success: false });
+    }).catch(() => {
+      addUser(data).then(() => {
+        socket.emit('signUpResponse', { success: true });
+      });
+    });
+  });
 
   socket.on('disconnect', () => {
     console.log('user disconnected');

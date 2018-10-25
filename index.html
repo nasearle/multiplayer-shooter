@@ -4,15 +4,26 @@
     <meta charset="utf-8">
   </head>
   <body>
-    <div id="phaser-example"></div>
-    <div id="chat-text" style="width:500px;height:100px;overflow-y: scroll">
-      <div>Welcome to the game! Type below to chat</div>
+    <div id="signDiv">
+      Username: <input id="signDiv-username" type="text"><br>
+      Password: <input id="signDiv-password" type="text">
+      <button id="signDiv-signIn">Sign In</button>
+      <button id="signDiv-signUp">Sign Up</button>
     </div>
-    <form id="chat-form">
-      <input id="chat-input" type="text" style="width:500px">
-    </form>
+
+    <div id="gameDiv" style="display:none;">
+      <div id="phaser-example"></div>
+      <div id="chat-text" style="width:500px;height:100px;overflow-y: scroll">
+        <div>Welcome to the game! Type below to chat</div>
+      </div>
+      <form id="chat-form">
+        <input id="chat-input" type="text" style="width:500px">
+      </form>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="//cdn.jsdelivr.net/npm/phaser@3.12/dist/phaser.min.js"></script>
+    <script type="module" src="js/sign-in.js"></script>
     <script type="module" src="js/chat.js"></script>
     <script type="module" src="js/game.js"></script>
   </body>

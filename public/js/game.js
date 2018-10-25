@@ -1,3 +1,4 @@
+import { signInJS } from './sign-in.js';
 import { chatJS } from './chat.js';
 
 const config = {
@@ -31,8 +32,9 @@ function preload() {
 function create() {
   const self = this;
   this.socket = io();
+  signInJS(this.socket);
+  chatJS(this.socket);
   this.hitbox = 0;
-  chatJS(this, this.socket);
   this.otherPlayers = this.physics.add.group();
   // this.bullets = this.physics.add.group();
   this.arrBullets = [];
@@ -249,5 +251,3 @@ function addOtherPlayers(self, playerInfo) {
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
-
-export const socket = game.socket;

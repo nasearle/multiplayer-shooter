@@ -1,4 +1,4 @@
-const chatJS = (game, socket) => {
+const chatJS = socket => {
   const chatText = document.getElementById('chat-text');
   const chatInput = document.getElementById('chat-input');
   const chatForm = document.getElementById('chat-form');
@@ -22,4 +22,4 @@ const chatJS = (game, socket) => {
   }
 };
 
-export {chatJS}
+export {chatJS};
