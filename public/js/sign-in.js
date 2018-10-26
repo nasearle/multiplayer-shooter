@@ -18,7 +18,7 @@ const signInJS = socket => {
       signDiv.style.display = 'none';
       gameDiv.style.display = 'inline-block';
     } else {
-      alert('Sign in unsuccessful');
+      alert(data.message);
     }
   });
 
@@ -26,7 +26,7 @@ const signInJS = socket => {
     if (data.success) {
       alert('Sign up successful');
     } else {
-      alert('Sign up unsuccessful');
+      alert(data.message);
     }
   });
 }

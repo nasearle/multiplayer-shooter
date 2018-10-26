@@ -9,32 +9,40 @@ const session = require('express-session')({
 });
 const sharedsession = require('express-socket.io-session');
 
+const mongojs = require('mongojs');
+const db = mongojs('localhost:27017/myGame', ['account', 'progress']);
+
 const DEBUG = true;
-const USERS = {
-  'nick': 'hi'
-};
 const isValidPassword = data => {
   return new Promise((resolve, reject) => {
-    if (USERS[data.username] === data.password) {
-      resolve();
-    } else {
-      reject();
-    }
+    db.account.find({ username:data.username, password:data.password }, (err, res) => {
+      if (res[0]) {
+        resolve();
+      } else {
+        reject('The username and password combination is incorrect');
+      }
+    });
   });
 }
 const isUsernameTaken = data => {
   return new Promise((resolve, reject) => {
-    if (USERS[data.username]) {
-      resolve();
-    } else {
-      reject();
-    }
+    db.account.find({ username: data.username }, (err, res) => {
+      if (res[0]) {
+        resolve('An account with the username \'' + data.username + '\' already exists');
+      } else {
+        reject();
+      }
+    });
   });
 }
 const addUser = data => {
   return new Promise(resolve => {
-    USERS[data.username] = data.password;
-    resolve();
+    db.account.insert({ username:data.username, password:data.password }, (err) => {
+      console.log('adding user');
+      console.log(err);
+
+      resolve();
+    });
   });
 }
 
@@ -96,14 +104,14 @@ io.on('connection', socket => {
         socket.handshake.session.ship_exists = true;
         socket.handshake.session.save();
       }
-    }).catch(() => {
-      socket.emit('signInResponse', { success: false });
+    }).catch(message => {
+      socket.emit('signInResponse', { success: false, message: message });
     });
   });
 
   socket.on('signUp', data => {
-    isUsernameTaken(data).then(() => {
-      socket.emit('signUpResponse', { success: false });
+    isUsernameTaken(data).then(message => {
+      socket.emit('signUpResponse', { success: false, message: message });
     }).catch(() => {
       addUser(data).then(() => {
         socket.emit('signUpResponse', { success: true });
