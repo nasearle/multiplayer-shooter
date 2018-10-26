@@ -38,10 +38,11 @@ const isUsernameTaken = data => {
 const addUser = data => {
   return new Promise(resolve => {
     db.account.insert({ username:data.username, password:data.password }, (err) => {
-      console.log('adding user');
-      console.log(err);
-
-      resolve();
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
     });
   });
 }
@@ -115,6 +116,8 @@ io.on('connection', socket => {
     }).catch(() => {
       addUser(data).then(() => {
         socket.emit('signUpResponse', { success: true });
+      }).catch(err => {
+        socket.emit('signUpResponse', { success: false, message: err });
       });
     });
   });
