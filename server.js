@@ -9,42 +9,56 @@ const session = require('express-session')({
 });
 const sharedsession = require('express-socket.io-session');
 
-const mongojs = require('mongojs');
-const db = mongojs('localhost:27017/myGame', ['account', 'progress']);
+const MongoClient = require('mongodb').MongoClient;
+const assert = require('assert');
+const url = 'mongodb://localhost:27017';
+const dbName = 'myGame';
 
 const DEBUG = true;
-const isValidPassword = data => {
-  return new Promise((resolve, reject) => {
-    db.account.find({ username:data.username, password:data.password }, (err, res) => {
-      if (res[0]) {
-        resolve();
-      } else {
-        reject('The username and password combination is incorrect');
-      }
-    });
-  });
+const isValidPassword = async data => {
+  let client;
+  try {
+    client = await MongoClient.connect(url);
+    const db = client.db(dbName);
+    const col = db.collection('account');
+    let r;
+
+    r = await col.find({ username: data.username, password: data.password }).toArray();
+    assert.equal(1, r.length, 'The username and/or password is incorrect');
+  } catch (err) {
+    throw new Error(err.message);
+  }
+  client.close();
 }
-const isUsernameTaken = data => {
-  return new Promise((resolve, reject) => {
-    db.account.find({ username: data.username }, (err, res) => {
-      if (res[0]) {
-        resolve('An account with the username \'' + data.username + '\' already exists');
-      } else {
-        reject();
-      }
-    });
-  });
+const isUsernameAvailable = async data => {
+  let client;
+  try {
+    client = await MongoClient.connect(url);
+    const db = client.db(dbName);
+    const col = db.collection('account');
+    let r;
+
+    r = await col.find({ username: data.username }).toArray();
+    assert.equal(0, r.length, `The username '${data.username}' is taken`);
+  } catch (err) {
+    throw new Error(err.message);
+  }
+  client.close();
 }
-const addUser = data => {
-  return new Promise(resolve => {
-    db.account.insert({ username:data.username, password:data.password }, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
+const addUser = async data => {
+  let client;
+  try {
+    client = await MongoClient.connect(url);
+    const db = client.db(dbName);
+    const col = db.collection('account');
+    let r;
+
+    r = await col.insertOne({ username: data.username, password: data.password });
+    assert.equal(1, r.result.n, `Failed to create your profile. Check back later`);
+  } catch (err) {
+    throw new Error(err.message);
+  }
+  client.close();
 }
 
 const HITBOX = 30;
@@ -59,10 +73,6 @@ const star = {
   x: Math.floor(Math.random() * 700) + 50,
   y: Math.floor(Math.random() * 500) + 50,
 };
-// const scores = {
-//   blue: 0,
-//   red: 0,
-// };
 
 app.use(express.static(__dirname + '/public'));
 
@@ -77,8 +87,11 @@ app.get('/', (req, res) => {
 io.on('connection', socket => {
   console.log('a user connected');
 
-  socket.on('signIn', data => {
-    isValidPassword(data).then(() => {
+  socket.on('signIn', async data => {
+    try {
+      await isValidPassword(data);
+      console.log('password is valid');
+
       socket.emit('signInResponse', { success: true });
       // if the player doesn't already have an existing session, create a new player
       // (check prevents creating multiple ships when browser auto disconnects
@@ -101,25 +114,25 @@ io.on('connection', socket => {
         // socket.emit('scoreUpdate', players[socket.id].kills);
         // update all other players of the new player
         socket.broadcast.emit('newPlayer', players[socket.id]);
-
         socket.handshake.session.ship_exists = true;
         socket.handshake.session.save();
       }
-    }).catch(message => {
-      socket.emit('signInResponse', { success: false, message: message });
-    });
+    } catch (err) {
+      socket.emit('signInResponse', {
+        success: false,
+        message: err.message,
+      });
+    }
   });
 
-  socket.on('signUp', data => {
-    isUsernameTaken(data).then(message => {
-      socket.emit('signUpResponse', { success: false, message: message });
-    }).catch(() => {
-      addUser(data).then(() => {
-        socket.emit('signUpResponse', { success: true });
-      }).catch(err => {
-        socket.emit('signUpResponse', { success: false, message: err });
-      });
-    });
+  socket.on('signUp', async data => {
+    try {
+      await isUsernameAvailable(data);
+      await addUser(data);
+      socket.emit('signUpResponse', { success: true });
+    } catch (err) {
+      socket.emit('signUpResponse', { success: false, message: err.message });
+    }
   });
 
   socket.on('disconnect', () => {
